@@ -1,4 +1,5 @@
-var API_HostName, urlParams, API_ObjectParams, recordCreateUrl, recordParams, api_version = 39.0;
+var API_HostName, urlParams, API_ObjectParams, recordCreateUrl, recordParams = {},
+    api_version = '39.0';
 
 //utility functions 
 /**
@@ -15,7 +16,18 @@ function getUrlVars(url) {
     }
     return myJson;
 }
-
+/**
+ * get the cookies from the browser to get session id
+ */
+function getCookies() {
+    var pairs = document.cookie.split(";");
+    var cookies = {};
+    for (var i = 0; i < pairs.length; i++) {
+        var pair = pairs[i].split("=");
+        cookies[pair[0].trim()] = unescape(pair[1]);
+    }
+    return cookies;
+}
 
 /**
  * Set the values of the Global variables used in this page. We need the url parameters and the API name to be set to the right server for the HTTP callouts to lapi.
@@ -29,7 +41,7 @@ function setGlobalVars() {
                 if (paramkey.startsWith('record_')) {
                     if (paramkey.endsWith('_label')) {
                         var fieldlabel = paramkey.substring('record_'.length, paramkey.length - '_label'.length);
-                        if (recordParams.containsKey(fieldlabel))
+                        if (recordParams.hasOwnProperty(fieldlabel))
                             recordParams[fieldlabel].label = urlParams[paramkey];
                         else
                             recordParams[fieldlabel] = {
@@ -38,7 +50,7 @@ function setGlobalVars() {
                     }
                     if (paramkey.endsWith('_value')) {
                         var fieldlabel = paramkey.substring('record_'.length, paramkey.length - '_value'.length);
-                        if (recordParams.containsKey(fieldlabel))
+                        if (recordParams.hasOwnProperty(fieldlabel))
                             recordParams[fieldlabel].value = urlParams[paramkey];
                         else
                             recordParams[fieldlabel] = {
@@ -47,15 +59,16 @@ function setGlobalVars() {
                     }
                 }
             });
-
+            cookies = getCookies();
             API_ObjectParams = {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'Authorization': 'Bearer {!$Api.Session_Id}'
+                    'Authorization': 'Bearer ' + cookies.sid
                 }
             };
+            console.log(API_ObjectParams);
             recordCreateUrl = API_HostName + '/services/data/v' + api_version + '/lapi/record-defaults/create/' + urlParams.objectName;
             resolve();
         } catch (ex) {
@@ -79,11 +92,13 @@ function getPicklistValues(picklist_url) {
  * Get the recordInfo based on the createurl generated globally.
  */
 function getRecordInfo() {
+    console.log(recordCreateUrl, API_ObjectParams);
     return fetch(recordCreateUrl, API_ObjectParams)
         .then(function (res) {
             return res.json();
         })
         .then(function (resJson) {
+            console.log(resJson);
             picklistfields = {};
             resJson['recordObject'] = recordParams;
             resJson.recordObject.sobjectType = resJson.objectInfo.apiName;
@@ -154,4 +169,8 @@ function redirect() {
 
 setGlobalVars()
     .then(getRecordInfo)
-    .then(passToLightning);
+    .then(passToLightning)
+    .catch(function (error) {
+        console.log(error);
+        alert(error, 'we will display a beautiful message later');
+    });

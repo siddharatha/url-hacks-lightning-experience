@@ -16,5 +16,10 @@
         <apex:insert name="cancelLabel" />
     </button>
 
-    <apex:insert name="customScripts" />    
+    <script>
+        // declared here as a global variable so , the javascript can use it without worrying about merge fields
+        var visualforceSessionId = '{!$Api.Session_Id}';        
+    </script>    
+    <apex:insert name="customScripts" />
+    
 </apex:page>
