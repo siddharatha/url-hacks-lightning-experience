@@ -3,7 +3,7 @@
     <aura:renderif isTrue="{!v.layoutComponent.isPicklist}">
         <lightning:select label="{!v.layoutComponent.label}">
             <option value="">choose one...</option>
-            <aura:iteration items="{!v.layoutComponent.fieldDef.picklistValues.values}" var="picklist">
+            <aura:iteration items="{!v.layoutComponent.picklistValues.values}" var="picklist">
                 <option value="{!picklist.value}">{!picklist.label}</option>
             </aura:iteration>
         </lightning:select>

@@ -11,12 +11,14 @@
     </div>
  
     <!-- placeholder to load lightning component -->
+    <div id="timer" />
     <div id="lightning" />       
     <button class="slds-button slds-button--neutral" onClick="handleCancel()">
         Go Back
     </button>
 
     <script>
+    var startTime = new Date();
     var API_HostName, urlParams, API_ObjectParams, recordCreateUrl, recordParams = {},
     api_version = '39.0';
 
@@ -111,55 +113,60 @@ function getPicklistValues(picklist_url) {
  * Get the recordInfo based on the createurl generated globally.
  */
 function getRecordInfo() {
-    console.log(recordCreateUrl, API_ObjectParams);
-    return fetch(recordCreateUrl, API_ObjectParams)
-        .then(function (res) {
-            return res.json();
-        })
-        .then(function (resJson) {
-            console.log(resJson);
-            picklistfields = {};
-            resJson['recordObject'] = recordParams;
-            resJson.recordObject.sobjectType = resJson.objectInfo.apiName;
-            resJson.layout.sections.forEach(function (section) {
-                section.layoutRows.forEach(function (layoutRow) {
-                    layoutRow.layoutItems.forEach(function (layoutItem) {
-                        layoutItem.layoutComponents.forEach(function (layoutComponent) {
-                            var fieldDef = resJson.objectInfo.fields[layoutComponent.value];
-                            layoutComponent.fieldType = fieldDef.dataType;
-                            layoutComponent.picklistValuesUrls = Object.values(fieldDef.picklistValuesUrls)[0];
-                            if (layoutComponent.fieldType === 'Picklist') {
-                                picklistfields[layoutComponent.value] = layoutComponent.picklistValuesUrls;
-                            }
+    return new Promise(function (resolve, reject) {
+        fetch(recordCreateUrl, API_ObjectParams)
+            .then(function (res) {
+                return res.json();
+            })
+            .then(function (resJson) {
+                console.log(resJson);
+                picklistfields = {};
+                resJson['recordObject'] = recordParams;
+                resJson.recordObject.sobjectType = resJson.objectInfo.apiName;
+                resJson.layout.sections.forEach(function (section) {
+                    section.layoutRows.forEach(function (layoutRow) {
+                        layoutRow.layoutItems.forEach(function (layoutItem) {
+                            layoutItem.layoutComponents.forEach(function (layoutComponent) {
+                                var fieldDef = resJson.objectInfo.fields[layoutComponent.value];
+                                layoutComponent.fieldType = fieldDef.dataType;
+                                layoutComponent.picklistValuesUrls = Object.values(fieldDef.picklistValuesUrls)[0];
+                                if (layoutComponent.fieldType === 'Picklist') {
+                                    picklistfields[layoutComponent.value] = layoutComponent.picklistValuesUrls;
+                                }
+                            });
                         });
                     });
                 });
-            });
 
-            if (Object.keys(picklistfields).length > 0) {
-                Promise.all(Object.values(picklistfields).map(getPicklistValues))
-                    .then(function (r) {
-                        resJson.layout.sections.forEach(function (section) {
-                            section.layoutRows.forEach(function (layoutRow) {
-                                layoutRow.layoutItems.forEach(function (layoutItem) {
-                                    layoutItem.layoutComponents.forEach(function (layoutComponent) {
-                                        if (layoutComponent.fieldType === 'Picklist') {
-                                            layoutComponent.isPicklist = true;
-                                            layoutComponent.picklistValues = r.filter(function (eachpicklistresponse) {
-                                                return eachpicklistresponse.url == layoutComponent.picklistValuesUrls;
-                                            })[0];
-                                        } else
-                                            layoutComponent.isPicklist = false;
+                if (Object.keys(picklistfields).length > 0) {
+                    Promise.all(Object.values(picklistfields).map(getPicklistValues))
+                        .then(function (r) {
+                            resJson.layout.sections.forEach(function (section) {
+                                section.layoutRows.forEach(function (layoutRow) {
+                                    layoutRow.layoutItems.forEach(function (layoutItem) {
+                                        layoutItem.layoutComponents.forEach(function (layoutComponent) {
+                                            if (layoutComponent.fieldType === 'Picklist') {
+                                                layoutComponent.isPicklist = true;
+                                                layoutComponent.picklistValues = r.filter(function (eachpicklistresponse) {
+                                                    return eachpicklistresponse.url == layoutComponent.picklistValuesUrls;
+                                                })[0];
+                                            } else
+                                                layoutComponent.isPicklist = false;
+                                        });
                                     });
                                 });
                             });
+                            resolve(resJson);
                         });
-                        resolve(resJson);
-                    });
-            }
+                }
 
-        })
+            })
+            .catch(function (err) {
+                reject(err);
+            });
+    });
 }
+
 
 /**
  * Use Lightning out to create a component
@@ -168,7 +175,7 @@ function getRecordInfo() {
 function passToLightning(lapiObject) {
     return new Promise(function (resolve, reject) {
         $Lightning.use('c:PrefillQuickAction_Out', function () {
-            $Lightning.createComponent('c:CreateRecord', lapiObject, 'lightning', function (cmp, error, statusmessage) {
+            $Lightning.createComponent('c:CreateRecord', lapiObject, 'lightning', function (cmp, statusmessage, error) {
                 if (statusmessage === 'SUCCESS')
                     resolve();
                 else
@@ -189,6 +196,11 @@ function redirect() {
 setGlobalVars()
     .then(getRecordInfo)
     .then(passToLightning)
+    .then(function(){
+        var endTime = new Date();
+        document.querySelector('#timer').innerText = ((endTime - startTime)/1000) + 'seconds';
+        document.querySelector('#status').style.display='none';
+    })
     .catch(function (error) {
         console.log(error);
         alert(error, 'we will display a beautiful message later');

@@ -92,54 +92,58 @@ function getPicklistValues(picklist_url) {
  * Get the recordInfo based on the createurl generated globally.
  */
 function getRecordInfo() {
-    console.log(recordCreateUrl, API_ObjectParams);
-    return fetch(recordCreateUrl, API_ObjectParams)
-        .then(function (res) {
-            return res.json();
-        })
-        .then(function (resJson) {
-            console.log(resJson);
-            picklistfields = {};
-            resJson['recordObject'] = recordParams;
-            resJson.recordObject.sobjectType = resJson.objectInfo.apiName;
-            resJson.layout.sections.forEach(function (section) {
-                section.layoutRows.forEach(function (layoutRow) {
-                    layoutRow.layoutItems.forEach(function (layoutItem) {
-                        layoutItem.layoutComponents.forEach(function (layoutComponent) {
-                            var fieldDef = resJson.objectInfo.fields[layoutComponent.value];
-                            layoutComponent.fieldType = fieldDef.dataType;
-                            layoutComponent.picklistValuesUrls = Object.values(fieldDef.picklistValuesUrls)[0];
-                            if (layoutComponent.fieldType === 'Picklist') {
-                                picklistfields[layoutComponent.value] = layoutComponent.picklistValuesUrls;
-                            }
+    return new Promise(function (resolve, reject) {
+        fetch(recordCreateUrl, API_ObjectParams)
+            .then(function (res) {
+                return res.json();
+            })
+            .then(function (resJson) {
+                console.log(resJson);
+                picklistfields = {};
+                resJson['recordObject'] = recordParams;
+                resJson.recordObject.sobjectType = resJson.objectInfo.apiName;
+                resJson.layout.sections.forEach(function (section) {
+                    section.layoutRows.forEach(function (layoutRow) {
+                        layoutRow.layoutItems.forEach(function (layoutItem) {
+                            layoutItem.layoutComponents.forEach(function (layoutComponent) {
+                                var fieldDef = resJson.objectInfo.fields[layoutComponent.value];
+                                layoutComponent.fieldType = fieldDef.dataType;
+                                layoutComponent.picklistValuesUrls = Object.values(fieldDef.picklistValuesUrls)[0];
+                                if (layoutComponent.fieldType === 'Picklist') {
+                                    picklistfields[layoutComponent.value] = layoutComponent.picklistValuesUrls;
+                                }
+                            });
                         });
                     });
                 });
-            });
 
-            if (Object.keys(picklistfields).length > 0) {
-                Promise.all(Object.values(picklistfields).map(getPicklistValues))
-                    .then(function (r) {
-                        resJson.layout.sections.forEach(function (section) {
-                            section.layoutRows.forEach(function (layoutRow) {
-                                layoutRow.layoutItems.forEach(function (layoutItem) {
-                                    layoutItem.layoutComponents.forEach(function (layoutComponent) {
-                                        if (layoutComponent.fieldType === 'Picklist') {
-                                            layoutComponent.isPicklist = true;
-                                            layoutComponent.picklistValues = r.filter(function (eachpicklistresponse) {
-                                                return eachpicklistresponse.url == layoutComponent.picklistValuesUrls;
-                                            })[0];
-                                        } else
-                                            layoutComponent.isPicklist = false;
+                if (Object.keys(picklistfields).length > 0) {
+                    Promise.all(Object.values(picklistfields).map(getPicklistValues))
+                        .then(function (r) {
+                            resJson.layout.sections.forEach(function (section) {
+                                section.layoutRows.forEach(function (layoutRow) {
+                                    layoutRow.layoutItems.forEach(function (layoutItem) {
+                                        layoutItem.layoutComponents.forEach(function (layoutComponent) {
+                                            if (layoutComponent.fieldType === 'Picklist') {
+                                                layoutComponent.isPicklist = true;
+                                                layoutComponent.picklistValues = r.filter(function (eachpicklistresponse) {
+                                                    return eachpicklistresponse.url == layoutComponent.picklistValuesUrls;
+                                                })[0];
+                                            } else
+                                                layoutComponent.isPicklist = false;
+                                        });
                                     });
                                 });
                             });
+                            resolve(resJson);
                         });
-                        resolve(resJson);
-                    });
-            }
+                }
 
-        })
+            })
+            .catch(function (err) {
+                reject(err);
+            });
+    });
 }
 
 /**
