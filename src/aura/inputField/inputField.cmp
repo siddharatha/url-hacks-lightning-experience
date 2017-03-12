@@ -1,0 +1,15 @@
+<aura:component >
+    <aura:attribute name="layoutComponent" type="Object" />    
+    <aura:renderif isTrue="{!v.layoutComponent.isPicklist}">
+        <lightning:select label="{!v.layoutComponent.label}">
+            <option value="">choose one...</option>
+            <aura:iteration items="{!v.layoutComponent.fieldDef.picklistValues.values}" var="picklist">
+                <option value="{!picklist.value}">{!picklist.label}</option>
+            </aura:iteration>
+        </lightning:select>
+        <aura:set attribute="else">
+			{!v.layoutComponent.label} -- {!v.layoutComponent.fieldDef.dataType}            
+        </aura:set>
+    </aura:renderif>
+{!v.layoutComponent.label}    
+</aura:component>

@@ -1,0 +1,10 @@
+<apex:page >
+    <apex:composition template="Template_LightningExperiencePage">
+        <apex:define name="cancelLabel">
+            Go Back
+        </apex:define>
+        <apex:define name="customScripts">
+            <apex:includeScript value="{!URLFor($Resource.PrefillFromUrl,'index.js')}" />                    
+        </apex:define>
+    </apex:composition>
+</apex:page>

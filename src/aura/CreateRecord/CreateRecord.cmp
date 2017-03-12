@@ -1,0 +1,22 @@
+<aura:component >
+    <aura:attribute name="layout" type="Object" access="global" />
+    <aura:attribute name="objectInfo" type="Object" access="global" />
+    <aura:attribute name="record" type="Object" access="global" />
+    <aura:attribute name="recordObject" type="SObject" access="global" />
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}" />
+    We are gonna be creating the record for {!v.objectInfo.label}    
+    <aura:iteration items="{!v.layout.sections}" var="section">
+        <h3 class="slds-section-title--divider">{!section.heading}</h3>        
+        <aura:iteration items="{!section.layoutRows}" var="layoutRow">
+            <aura:iteration items="{!layoutRow.layoutItems}" var="layoutItem">
+                <aura:if isTrue="{!layoutItem.editableForNew}">
+                    <aura:iteration items="{!layoutItem.layoutComponents}" var="layoutComponent">
+                        <div class="slds-form-element">
+                            <c:inputField layoutComponent="{!layoutComponent}" />
+                        </div>
+                    </aura:iteration>
+                </aura:if>
+            </aura:iteration>
+        </aura:iteration>
+    </aura:iteration>
+</aura:component>
